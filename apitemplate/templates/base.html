@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <title>{% block title %}{% endblock %}</title>
+    {% block resources %}
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.2/css/jquery.dataTables.min.css">
+
+    <script type="text/javascript" charset="utf8" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.2/js/jquery.dataTables.min.js"></script>
+    {% endblock %}
+    {% block headerscripts %}
+    {% endblock %}
+  </head>
+
+  <body>
+  {% block body %}
+  THIS IS ARGUMENT: {{uiarg}}<br>
+  THIS IS QSARG: {{qsarg}}
+  {% endblock %}
+  </body>
+</html>
+
