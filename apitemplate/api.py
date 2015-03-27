@@ -2,7 +2,7 @@ import flask
 from flask import g as flaskGlobals
 from flask import request
 from flask.ext import restful
-from flask.ext.restful import reqparse
+from flask.ext.restful import reqparse, fields, marshal_with
 
 import contextlib
 import datetime
@@ -18,32 +18,47 @@ import apitemplate.settings as settings
 #import flask.ext.stormpath as strmpath
 #from flask.ext.cors import CORS
 
-class sessionCtx(object):
-    def __init__(self, sql, redis):
-        self.sql = sql
-        self.redis = redis
-
 @contextlib.contextmanager
-def sessionContext():
+def redisContext():
     if not hasattr(flaskGlobals, 'redisCon'):
         r = redis.StrictRedis(**settings.REDIS_CONFIG)
         flaskGlobals.redisCon = r
 
-    if not hasattr(flaskGlobals, 'dbSessionGen'):
+    yield flaskGlobals.redisCon
+
+@contextlib.contextmanager
+def sqlContext():
+    if not hasattr(flaskGlobals, 'sqlSessionGen'):
         engine = sqla.create_engine(settings.SQL_CONFIG)
         #con = engine.connect()
         tables.Base.metadata.create_all(engine)
         Session = sessionmaker(bind=engine)
 
-        flaskGlobals.dbEngine = engine
-        flaskGlobals.dbSessionGen = Session
+        flaskGlobals.sqlEngine = engine
+        flaskGlobals.sqlSessionGen = Session
 
-    dbCtx = sessionCtx(flaskGlobals.dbSessionGen(), flaskGlobals.redisCon)
-    yield dbCtx
-    dbCtx.sql.close()
+    session = flaskGlobals.sqlSessionGen()
+    yield session
+    session.close()
+
+@contextlib.contextmanager
+def mongoContext():
+    if not hasattr(flaskGlobals, 'mongoClient'):
+        flaskGlobals.mongoClient = pymongo.MongoClient(settings.MONGO_HOST,
+                                                  settings.MONGO_PORT)
+    yield flaskGlobals.mongoClient
 
 def closeEngine(error):
     pass
+
+namefields = {'col1': fields.Integer,
+              'col2': fields.String,
+              'col3': fields.Integer,
+              'col4': fields.Float,
+              'col5': fields.Integer,
+              'col6': fields.String,
+              'col7': fields.DateTime,
+              'col8': fields.DateTime}
 
 #TODO - move me
 def recordToDict(record):
@@ -67,26 +82,26 @@ QSparser = reqparse.RequestParser()
 QSparser.add_argument('qsarg', type=str)
 
 class restEndpoint(restful.Resource):
+    @marshal_with(namefields)
     def get(self, intarg):
-        with sessionContext() as ctx:
+        with sqlContext() as sql:
             #tables.Name.__table__.insert({'col2': 'name'})
-            ctx.sql.add(tables.Name(col2='adfa'))
-            ctx.sql.commit()
-            q = ctx.sql.query(tables.Name).filter(tables.Name.col1 == 1)
+            sql.add(tables.Name(col2='adfa', col3=123, col4=12.34, col5=10,
+            col6="text", col7=datetime.date.today(), col8=datetime.date.today()))
+            sql.commit()
+            q = sql.query(tables.Name).filter(tables.Name.col1 == 1)
             e = q.first()
-            return recordToDict(e)
+            return e
 
     def put(self, intarg):
-        with sessionContext() as ctx:
-            d = json.loads(request.data)
-            d['goodput'] = 'bro'
-            return d
+        d = json.loads(request.data)
+        d['goodput'] = 'bro'
+        return d
 
     def post(self, intarg):
-        with sessionContext() as ctx:
-            d = json.loads(request.data)
-            d['goodpost'] = 'bro'
-            return d
+        d = json.loads(request.data)
+        d['goodpost'] = 'bro'
+        return d
 
 def uiEndpoint(uiarg):
     args = QSparser.parse_args()
