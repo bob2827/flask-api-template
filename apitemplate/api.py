@@ -60,21 +60,6 @@ namefields = {'col1': fields.Integer,
               'col7': fields.DateTime,
               'col8': fields.DateTime}
 
-#TODO - move me
-def recordToDict(record):
-    d = {}
-    for col in record.__table__.columns:
-        val = record.__getattribute__(col.name)
-        t = type(val)
-        if t == datetime.datetime:
-            d[col.name] = str(val)
-        #if (t == str) or (t == int) or (t == float) or (t == bool):
-        else:
-            d[col.name] = val
-        #else:
-            
-    return d
-
 def root():
     return flask.render_template('bare.html')
 
